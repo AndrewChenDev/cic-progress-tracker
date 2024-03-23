@@ -21,6 +21,7 @@ async function loadSavedCredentialsIfExist(): Promise<OAuth2Client | null> {
         const credentials = JSON.parse(content);
         return google.auth.fromJSON(credentials);
     } catch (err) {
+        console.error('Failed to load saved credentials:', err);
         return null;
     }
 }
@@ -31,17 +32,22 @@ async function loadSavedCredentialsIfExist(): Promise<OAuth2Client | null> {
  * @param {OAuth2Client} client
  * @return {Promise<void>}
  */
-async function saveCredentials(client:any): Promise<void> {
-    const content = await fs.readFile(CREDENTIALS_PATH);
-    const keys = JSON.parse(content);
-    const key = keys.installed || keys.web;
-    const payload = JSON.stringify({
-        type: 'authorized_user',
-        client_id: key.client_id,
-        client_secret: key.client_secret,
-        refresh_token: client.credentials.refresh_token,
-    });
-    await fs.writeFile(TOKEN_PATH, payload);
+async function saveCredentials(client: any): Promise<void> {
+    try {
+        const content = await fs.readFile(CREDENTIALS_PATH);
+        const keys = JSON.parse(content);
+        const key = keys.installed || keys.web;
+        const payload = JSON.stringify({
+            type: 'authorized_user',
+            client_id: key.client_id,
+            client_secret: key.client_secret,
+            refresh_token: client.credentials.refresh_token,
+        });
+        await fs.writeFile(TOKEN_PATH, payload);
+        console.log('Credentials saved successfully.');
+    } catch (err) {
+        console.error('Failed to save credentials:', err);
+    }
 }
 
 /**
@@ -49,40 +55,47 @@ async function saveCredentials(client:any): Promise<void> {
  *
  */
 export async function authorize() {
-    let client:any = await loadSavedCredentialsIfExist();
+    let client: any = await loadSavedCredentialsIfExist();
     if (client) {
         console.log('Using saved credentials');
         return client;
     }
-    client = await authenticate({
-        scopes: SCOPES,
-        keyfilePath: CREDENTIALS_PATH,
-    });
-    if (client.credentials) {
-        console.log('Saving credentials');
-        await saveCredentials(client);
+    try {
+        client = await authenticate({
+            scopes: SCOPES,
+            keyfilePath: CREDENTIALS_PATH,
+        });
+        if (client.credentials) {
+            console.log('Saving credentials');
+            await saveCredentials(client);
+        }
+    } catch (err) {
+        console.error('Authorization failed:', err);
     }
     return client;
 }
 
-export async function sendMessage(auth:any, data?:any) {
-    const gmail = google.gmail({version: 'v1', auth});
+export async function sendMessage(auth: any, data?: any) {
+    try {
+        const gmail = google.gmail({version: 'v1', auth});
 
-    const rawMessage = `From: "${process.env.MY_NAME}" <${process.env.MY_EMAIL}\r\n` +
-        `To: ${process.env.MY_EMAIL}\r\n` +
-        `Subject: CitizenShip Tracker Updated\r\n` +
-        `Content-Type: text/plain; charset="UTF-8"\r\n\r\n` +
-        `Hi, this is a notification that the status of your citizenship application has been updated.`
+        const rawMessage = `From: "${process.env.MY_NAME}" <${process.env.MY_EMAIL}>\r\n` +
+            `To: ${process.env.MY_EMAIL}\r\n` +
+            `Subject: CitizenShip Tracker Updated\r\n` +
+            `Content-Type: text/plain; charset="UTF-8"\r\n\r\n` +
+            `Hi, this is a notification that the status of your citizenship application has been updated.`
 
-    const encodedMessage = Buffer.from(rawMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const encodedMessage = Buffer.from(rawMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-    await gmail.users.messages.send({
-        auth: auth,
-        userId: 'me',
-        requestBody: {
-            raw: encodedMessage,
-        },
-    })
-    console.log('Message sent!')
+        await gmail.users.messages.send({
+            auth: auth,
+            userId: 'me',
+            requestBody: {
+                raw: encodedMessage,
+            },
+        });
+        console.log('Message sent!');
+    } catch (err) {
+        console.error('Failed to send message:', err);
+    }
 }
-
