@@ -1,0 +1,9 @@
+node_modules/
+.env
+.docker-env
+token.json
+data.json
+credentials.json
+bun.lockb
+.DS_Store
+.idea

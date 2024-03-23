@@ -1,0 +1,27 @@
+{
+  "name": "cic-progress-tracker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "bun src/main.ts",
+    "build": "docker build -t cic-progress-tracker .",
+    "run-docker": "docker run --env-file ./.docker-env -v ./credentials.json:/app/credentials.json -v ./token.json:/app/token.json -v ./data.json:/app/data.json -d cic-progress-tracker",
+    "push": "docker buildx build --platform linux/amd64,linux/arm64 -t andrew840513/cic-tracker -f Dockerfile --push ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.41.2",
+    "@types/node": "^20.11.20",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
+    "cron-parser": "^4.9.0",
+    "googleapis": "^134.0.0",
+    "node-cron": "^3.0.3"
+  }
+}
