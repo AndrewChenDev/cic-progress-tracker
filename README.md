@@ -41,13 +41,12 @@ yarn start
 Create an `.env` file in the root of the project with the following contents:
 
 ```
-URL=https://tracker-suivi.apps.cic.gc.ca/en/login
-USERNAME=your_tracker_username
-PASSWORD=your_tracker_password
-CLIENT_ID=your_gmail_api_client_id
-CLIENT_SECRET=your_gmail_api_client_secret
-MY_EMAIL=your_email
-MY_NAME=your_name
+USERNAME= your_tracker_username
+PASSWORD= your_tracker_password
+MY_EMAIL= your_email
+MY_NAME= your_name
+URL= (optional) URL to the CIC tracker
+CRON_SCHEDULE= (optional) cron schedule for the application
 ```
 
 ## Running with Docker

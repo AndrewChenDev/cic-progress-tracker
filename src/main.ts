@@ -3,9 +3,9 @@ import checkProgress from "./checkProgress";
 import cronParser from 'cron-parser';
 
 // Define a type for the environment variable keys to improve type checking
-type EnvKey = 'URL' | 'USERNAME' | 'PASSWORD' | 'CLIENT_ID' | 'CLIENT_SECRET' | 'MY_EMAIL' | 'MY_NAME';
+type EnvKey = 'USERNAME' | 'PASSWORD' | 'MY_EMAIL' | 'MY_NAME';
 
-const cronSchedule: string = '0 * * * *';
+const cronSchedule: string = `${process.env.CRON_SCHEDULE}` || '0 * * * *';
 
 // Check if an environment variable exists
 checkEnvVariables();
@@ -36,7 +36,7 @@ async function run(): Promise<void> {
 // Function to check if all required environment variables are set
 function checkEnvVariables(): void {
     // Required environment variables
-    const requiredEnv: EnvKey[] = ['URL', 'USERNAME', 'PASSWORD', 'CLIENT_ID', 'CLIENT_SECRET', 'MY_EMAIL', 'MY_NAME'];
+    const requiredEnv: EnvKey[] = ['USERNAME', 'PASSWORD', 'MY_EMAIL', 'MY_NAME'];
     const unsetEnv: string[] = requiredEnv.filter((envVar: EnvKey) => !process.env[envVar]);
 
     if (unsetEnv.length > 0) {

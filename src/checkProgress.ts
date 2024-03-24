@@ -20,7 +20,7 @@ async function checkProgress(): Promise<void> {
         page = await context.newPage();
 
         console.log('Browser opened, loading page...');
-        await page.goto(process.env.URL ?? '', {waitUntil: 'load'});
+        await page.goto(process.env.URL ?? 'https://tracker-suivi.apps.cic.gc.ca/en/login', {waitUntil: 'load'});
 
         await login(page);
 
