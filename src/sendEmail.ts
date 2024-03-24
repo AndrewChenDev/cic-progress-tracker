@@ -1,25 +1,25 @@
-const fs = require('fs').promises;
+import {promises as fs} from 'fs';
 import path from 'path';
 import {authenticate} from '@google-cloud/local-auth';
-import {google,} from 'googleapis';
+import {Auth, google} from 'googleapis';
 
 const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
-
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
-
 
 /**
  * Reads previously authorized credentials from the save file.
  *
- * @return {Promise<OAuth2Client|null>}
+ * @return {Promise<Auth.OAuth2Client|null>}
  */
-// @ts-ignore
-async function loadSavedCredentialsIfExist(): Promise<OAuth2Client | null> {
+async function loadSavedCredentialsIfExist(): Promise<Auth.OAuth2Client | null> {
     try {
-        const content = await fs.readFile(TOKEN_PATH);
+        const content = await fs.readFile(TOKEN_PATH, 'utf8');
         const credentials = JSON.parse(content);
-        return google.auth.fromJSON(credentials);
+        const {client_id, client_secret, refresh_token} = credentials;
+        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
+        oAuth2Client.setCredentials({refresh_token});
+        return oAuth2Client;
     } catch (err) {
         console.error('Failed to load saved credentials:', err);
         return null;
@@ -27,22 +27,23 @@ async function loadSavedCredentialsIfExist(): Promise<OAuth2Client | null> {
 }
 
 /**
- * Serializes credentials to a file compatible with GoogleAuth.fromJSON.
+ * Serializes credentials to a file.
  *
- * @param {OAuth2Client} client
+ * @param {Auth.OAuth2Client} client
  * @return {Promise<void>}
  */
-async function saveCredentials(client: any): Promise<void> {
+async function saveCredentials(client: Auth.OAuth2Client): Promise<void> {
+    if (!client.credentials.refresh_token) {
+        console.error('No refresh token found, credentials not saved');
+        return;
+    }
     try {
-        const content = await fs.readFile(CREDENTIALS_PATH);
-        const keys = JSON.parse(content);
-        const key = keys.installed || keys.web;
         const payload = JSON.stringify({
             type: 'authorized_user',
-            client_id: key.client_id,
-            client_secret: key.client_secret,
+            client_id: client._clientId,
+            client_secret: client._clientSecret,
             refresh_token: client.credentials.refresh_token,
-        });
+        }, null, 2);
         await fs.writeFile(TOKEN_PATH, payload);
         console.log('Credentials saved successfully.');
     } catch (err) {
@@ -51,11 +52,12 @@ async function saveCredentials(client: any): Promise<void> {
 }
 
 /**
- * Load or request or authorization to call APIs.
+ * Load or request authorization to call APIs.
  *
+ * @return {Promise<Auth.OAuth2Client|null>}
  */
-export async function authorize() {
-    let client: any = await loadSavedCredentialsIfExist();
+export async function authorize(): Promise<Auth.OAuth2Client | null> {
+    let client = await loadSavedCredentialsIfExist();
     if (client) {
         console.log('Using saved credentials');
         return client;
@@ -65,30 +67,31 @@ export async function authorize() {
             scopes: SCOPES,
             keyfilePath: CREDENTIALS_PATH,
         });
-        if (client.credentials) {
-            console.log('Saving credentials');
-            await saveCredentials(client);
-        }
+        await saveCredentials(client);
     } catch (err) {
         console.error('Authorization failed:', err);
+        return null;
     }
     return client;
 }
 
-export async function sendMessage(auth: any, data?: any) {
+/**
+ * Send an email message.
+ *
+ * @param {Auth.OAuth2Client} auth
+ */
+export async function sendMessage(auth: Auth.OAuth2Client) {
     try {
         const gmail = google.gmail({version: 'v1', auth});
-
         const rawMessage = `From: "${process.env.MY_NAME}" <${process.env.MY_EMAIL}>\r\n` +
             `To: ${process.env.MY_EMAIL}\r\n` +
-            `Subject: CitizenShip Tracker Updated\r\n` +
+            `Subject: Citizenship Tracker Updated\r\n` +
             `Content-Type: text/plain; charset="UTF-8"\r\n\r\n` +
-            `Hi, this is a notification that the status of your citizenship application has been updated.`
+            `Hi, this is a notification that the status of your citizenship application has been updated.`;
 
-        const encodedMessage = Buffer.from(rawMessage).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        const encodedMessage = Buffer.from(rawMessage).toString('base64url');
 
         await gmail.users.messages.send({
-            auth: auth,
             userId: 'me',
             requestBody: {
                 raw: encodedMessage,
