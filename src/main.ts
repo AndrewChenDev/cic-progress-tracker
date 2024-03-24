@@ -11,12 +11,14 @@ const cronSchedule: string = `${process.env.CRON_SCHEDULE}` || '0 * * * *';
 checkEnvVariables();
 
 run().then(() => {
-    console.log('Scheduled task started');
-    // Schedule your task to run on the desired schedule, e.g., every hour
-    cron.schedule(cronSchedule, async () => {
-        console.log('Running scheduled task');
-        await run();
-    });
+    console.log('task completed');
+    process.exit(0);
+    // console.log('Scheduled task started');
+    // // Schedule your task to run on the desired schedule, e.g., every hour
+    // cron.schedule(cronSchedule, async () => {
+    //     console.log('Running scheduled task');
+    //     await run();
+    // });
 }).catch((err: Error) => {
     console.error('Error starting scheduled task:', err);
 });
@@ -25,12 +27,12 @@ run().then(() => {
 async function run(): Promise<void> {
     await checkProgress();
     // Use cron-parser to determine the next execution time
-    try {
-        const interval = cronParser.parseExpression(cronSchedule);
-        console.log('Next task will run at:', interval.next().toString());
-    } catch (err) {
-        console.error('Error parsing cron schedule:', err);
-    }
+    // try {
+    //     const interval = cronParser.parseExpression(cronSchedule);
+    //     console.log('Next task will run at:', interval.next().toString());
+    // } catch (err) {
+    //     console.error('Error parsing cron schedule:', err);
+    // }
 }
 
 // Function to check if all required environment variables are set
