@@ -6,6 +6,7 @@ import {Auth, google} from 'googleapis';
 const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
+import _ from 'lodash';
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -79,18 +80,18 @@ export async function authorize(): Promise<Auth.OAuth2Client | null> {
  * Send an email message.
  *
  * @param {Auth.OAuth2Client} auth
+ * @param responseBody
  */
-export async function sendMessage(auth: Auth.OAuth2Client) {
+export async function sendMessage(auth: Auth.OAuth2Client, responseBody:any) {
     try {
         const gmail = google.gmail({version: 'v1', auth});
         const rawMessage = `From: "${process.env.MY_NAME}" <${process.env.MY_EMAIL}>\r\n` +
             `To: ${process.env.MY_EMAIL}\r\n` +
             `Subject: Citizenship Tracker Updated\r\n` +
-            `Content-Type: text/plain; charset="UTF-8"\r\n\r\n` +
-            `Hi, this is a notification that the status of your citizenship application has been updated.`;
+            `Content-Type: text/html; charset="UTF-8"\r\n\r\n` +
+            emailContent(responseBody);
 
         const encodedMessage = Buffer.from(rawMessage).toString('base64url');
-
         await gmail.users.messages.send({
             userId: 'me',
             requestBody: {
@@ -101,4 +102,58 @@ export async function sendMessage(auth: Auth.OAuth2Client) {
     } catch (err) {
         console.error('Failed to send message:', err);
     }
+}
+
+function emailContent(data: any){
+    return `<!DOCTYPE html>
+<html lang="en">
+<body>
+    <h1>Dear Applicant,</h1>
+    <p>Hi, this is a notification that the status of your citizenship application has been updated.</p>
+
+    <h2>Application Summary:</h2>
+    <ul>
+        <li><strong>Application Number:</strong> ${data.applicationNumber}</li>
+        <li><strong>UCI (Unique Client Identifier):</strong> ${data.uci}</li>
+        <li><strong>Last Updated:</strong> ${data.lastUpdatedTime}</li>
+        <li><strong>Status:</strong> ${_.startCase(data.status)}</li>
+    </ul>
+
+    <h2>Actions Required:</h2>
+    <p>We kindly ask for your attention to the following required action(s) to ensure the smooth processing of your application:</p>
+    <ul>
+        ${data.actions.map((action:any) => `
+        <li style="margin: 30px 0">
+            <strong>${_.startCase(action.activity)}:</strong>
+            <ul>
+                <li><strong>Details:</strong> ${action.title.en}</li>
+                <li><strong>Instructions:</strong> ${action.content.en}</li>
+            </ul>
+        </li><br/><br/><br/>
+        `).join('')}
+    </ul>
+
+    <h2>Application Activities:</h2>
+    <ul>
+        ${data.activities.map((activity:any) => `
+        <li style="margin: 30px 0">
+            ${_.startCase(activity.activity)}:<strong>${_.startCase(activity.status)}</strong>
+        </li><br/><br/><br/>
+        `).join('')}
+    </ul>
+
+    <h2>Application History:</h2>
+    <ul>
+        ${data.history.map((entry:any) => `
+        <li style="margin: 30px 0">
+            <strong>${entry.title.en}</strong><br/>
+            ${entry.time}<br/><br/>
+            ${entry.text.en}
+        </li>
+        <br/><br/><br/>
+        `).join('')}
+    </ul>
+</body>
+</html>
+`;
 }
