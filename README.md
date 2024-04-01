@@ -13,18 +13,6 @@ For bun:
 bun install
 ```
 
-For npm:
-
-```
-npm install
-```
-
-For yarn:
-
-```
-yarn install
-```
-
 You will need a Gmail OAuth key in a JSON file, which should be renamed to `credentials.json`, to authenticate the email
 functionality.
 
@@ -32,8 +20,6 @@ functionality.
 
 ```
 bun start
-npm start
-yarn start
 ```
 
 ## Environment Setup
