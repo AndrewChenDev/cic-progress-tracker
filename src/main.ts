@@ -1,25 +1,31 @@
 import cron from 'node-cron';
 import checkProgress from "./checkProgress";
 import cronParser from 'cron-parser';
+import {authorize} from "./sendEmail";
 
 // Define a type for the environment variable keys to improve type checking
 type EnvKey = 'USERNAME' | 'PASSWORD' | 'MY_EMAIL' | 'MY_NAME';
 
 const cronSchedule: string = `${process.env.CRON_SCHEDULE}` || '0 * * * *';
 
-// Check if an environment variable exists
-checkEnvVariables();
+(async () => {
+    // Check if an environment variable exists
+    checkEnvVariables();
+    await checkCredentials();
 
-run().then(() => {
-    console.log('Scheduled task started');
-    // Schedule your task to run on the desired schedule, e.g., every hour
-    cron.schedule(cronSchedule, async () => {
-        console.log('Running scheduled task');
+    try {
         await run();
-    });
-}).catch((err: Error) => {
-    console.error('Error starting scheduled task:', err);
-});
+        console.log('Scheduled task started');
+        // Schedule your task to run on the desired schedule, e.g., every hour
+        cron.schedule(cronSchedule, async () => {
+            console.log('Running scheduled task');
+            await run();
+        });
+    }catch (err){
+        console.error('Error starting scheduled task:', err);
+    }
+})();
+
 
 
 async function run(): Promise<void> {
@@ -45,4 +51,15 @@ function checkEnvVariables(): void {
     } else {
         console.log('All required environment variables are set');
     }
+}
+
+async function checkCredentials(){
+    let auth = await authorize();
+    if(auth){
+        console.log('Credentials are valid');
+    }else{
+        console.log('Credentials are invalid');
+        process.exit(1);
+    }
+    return
 }
