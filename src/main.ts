@@ -12,7 +12,6 @@ const cronSchedule: string = `${process.env.CRON_SCHEDULE}` || '0 * * * *';
     // Check if an environment variable exists
     checkEnvVariables();
     await checkCredentials();
-
     try {
         await run();
         console.log('Scheduled task started');
@@ -25,8 +24,6 @@ const cronSchedule: string = `${process.env.CRON_SCHEDULE}` || '0 * * * *';
         console.error('Error starting scheduled task:', err);
     }
 })();
-
-
 
 async function run(): Promise<void> {
     await checkProgress();
