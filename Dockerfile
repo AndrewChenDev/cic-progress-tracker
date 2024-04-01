@@ -22,7 +22,7 @@ COPY . .
 RUN bun install
 
 # Install Playwright dependencies. Adjust the command if Bun provides a direct method in the future.
-RUN bunx playwright install
+RUN bunx playwright install chromium
 
 # The command to run your application, adjust as necessary
 CMD ["bun", "src/main.ts"]
