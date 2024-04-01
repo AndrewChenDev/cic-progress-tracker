@@ -13,7 +13,7 @@ async function checkProgress(): Promise<void> {
     let context: BrowserContext | null = null;
     let page: Page | null = null;
     try {
-        browser = await playwright.chromium.launch();
+        browser = await playwright.webkit.launch();
         context = await browser.newContext();
         page = await context.newPage();
 
