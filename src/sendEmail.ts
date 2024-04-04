@@ -1,4 +1,3 @@
-import {promises as fs} from 'fs';
 import path from 'path';
 import {authenticate} from '@google-cloud/local-auth';
 import {Auth, google} from 'googleapis';
@@ -15,8 +14,7 @@ import _ from 'lodash';
  */
 async function loadSavedCredentialsIfExist(): Promise<Auth.OAuth2Client | null> {
     try {
-        const content = await fs.readFile(TOKEN_PATH, 'utf8');
-        const credentials = JSON.parse(content);
+        const credentials = await Bun.file(TOKEN_PATH).json();
         const {client_id, client_secret, refresh_token} = credentials;
         const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
         oAuth2Client.setCredentials({refresh_token});
@@ -45,7 +43,7 @@ async function saveCredentials(client: Auth.OAuth2Client): Promise<void> {
             client_secret: client._clientSecret,
             refresh_token: client.credentials.refresh_token,
         }, null, 2);
-        await fs.writeFile(TOKEN_PATH, payload);
+        await Bun.write(TOKEN_PATH, payload);
         console.log('Credentials saved successfully.');
     } catch (err) {
         console.error('Failed to save credentials:', err);
