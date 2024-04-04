@@ -1,5 +1,4 @@
 import playwright, {Browser, BrowserContext, Page} from 'playwright';
-import fs from 'fs';
 import {authorize, sendMessage} from "./sendEmail";
 
 interface StoredData {
@@ -7,7 +6,7 @@ interface StoredData {
     statusText: string;
 }
 async function checkProgress(): Promise<void> {
-    const storedData: StoredData = readStoredData();
+    const storedData = await Bun.file('data.json').json();
 
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
@@ -29,9 +28,10 @@ async function checkProgress(): Promise<void> {
                     responseBody.history.sort((a: { time: number; }, b: { time: number; }) => b.time - a.time);
                     convertTimestamps(responseBody);
 
-                    const hasChange = checkForChange(responseBody.lastUpdatedTime, responseBody.status, storedData);
+                    const {lastUpdatedTime, status} = responseBody;
+                    const hasChange = checkForChange(lastUpdatedTime, status, storedData);
                     if (hasChange) {
-                        writeData({dateText:responseBody.lastUpdatedTime, statusText:responseBody.status});
+                        await Bun.write('data.json', JSON.stringify({dateText:lastUpdatedTime, statusText:status}));
                         console.log('Data has changed');
                         let auth = await authorize();
                         if (auth) {
@@ -76,26 +76,6 @@ async function login(page: Page): Promise<void> {
 
 function checkForChange(dateText: string, statusText: string, storedData: StoredData): boolean {
     return dateText !== storedData.dateText || statusText !== storedData.statusText;
-}
-
-function readStoredData(): StoredData {
-    try {
-        if (fs.existsSync('data.json')) {
-            const data = fs.readFileSync('data.json', 'utf8');
-            return JSON.parse(data);
-        }
-    } catch (error) {
-        console.error('Error reading from data.json:', error);
-    }
-    return {dateText: '', statusText: ''};
-}
-
-function writeData(data: StoredData): void {
-    try {
-        fs.writeFileSync('data.json', JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('Error writing to data.json:', error);
-    }
 }
 
 async function closeResources(page: Page | null, context: BrowserContext | null, browser: Browser | null): Promise<void> {
