@@ -3,7 +3,7 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - main  # Set this to the branch you want to trigger the build
+      - once  # Set this to the branch you want to trigger the build
 
 jobs:
   build-and-push:
