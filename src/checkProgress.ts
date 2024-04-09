@@ -6,8 +6,13 @@ interface StoredData {
     statusText: string;
 }
 async function checkProgress(): Promise<void> {
-    const storedData = await Bun.file('data.json').json();
-
+    let storedData = Bun.file('data.json');
+    if (await storedData.exists()) {
+        storedData = await storedData.json();
+    } else {
+        await Bun.write('data.json', JSON.stringify({dateText:'', statusText:''}));
+        storedData = await Bun.file('data.json').json();
+    }
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let page: Page | null = null;
