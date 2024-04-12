@@ -4,8 +4,14 @@ node_modules/
 
 .env
 .docker-env
+
 token.json
 data.json
 credentials.json
+screenshot.png
+info.json
+debug.log
+start.sh
+
 .DS_Store
 
