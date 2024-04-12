@@ -1,4 +1,4 @@
-import playwright, {Browser, BrowserContext, Page} from 'playwright';
+import {Browser, BrowserContext, chromium, Page} from 'playwright';
 import {authorize, sendMessage} from "./sendEmail";
 
 interface StoredData {
@@ -6,7 +6,7 @@ interface StoredData {
     statusText: string;
 }
 async function checkProgress(): Promise<void> {
-    let storedData = Bun.file('data.json');
+    let storedData:any = Bun.file('data.json');
     if (await storedData.exists()) {
         storedData = await storedData.json();
     } else {
@@ -17,10 +17,9 @@ async function checkProgress(): Promise<void> {
     let context: BrowserContext | null = null;
     let page: Page | null = null;
     try {
-        browser = await playwright.chromium.launch();
+        browser = await chromium.launch();
         context = await browser.newContext();
         page = await context.newPage();
-
 
         // Listen for all responses to capture a specific POST request response
         page.on('response', async (response:any) => {
