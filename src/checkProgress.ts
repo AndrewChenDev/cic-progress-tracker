@@ -57,7 +57,7 @@ async function checkProgress(): Promise<void> {
         await page.goto(process.env.URL ?? 'https://tracker-suivi.apps.cic.gc.ca/en/login', {waitUntil: 'load'});
 
         await login(page);
-
+        await page.screenshot({path: 'screenshot.png', fullPage: true})
     } catch (error) {
         console.error('An error occurred, closing browser now:', error);
     } finally {
