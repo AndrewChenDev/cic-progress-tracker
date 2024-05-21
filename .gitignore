@@ -15,3 +15,4 @@ start.sh
 
 .DS_Store
 
+sendgrid.env

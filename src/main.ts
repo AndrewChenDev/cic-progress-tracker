@@ -1,5 +1,4 @@
 import checkProgress from "./checkProgress";
-import {authorize} from "./sendEmail";
 
 // Define a type for the environment variable keys to improve type checking
 type EnvKey = 'USERNAME' | 'PASSWORD' | 'MY_EMAIL' | 'MY_NAME';
@@ -11,7 +10,6 @@ const cronSchedule: string = `${process.env.CRON_SCHEDULE}` || '0 * * * *';
     //output PST time with format YYYY-MM-DD
     console.log(new Date().toLocaleString("en-US", {timeZone: "America/Vancouver"}));
     checkEnvVariables();
-    await checkCredentials();
     try {
         await run();
     }catch (err){
@@ -35,15 +33,4 @@ function checkEnvVariables(): void {
     } else {
         console.log('All required environment variables are set');
     }
-}
-
-async function checkCredentials(){
-    let auth = await authorize();
-    if(auth){
-        console.log('Credentials are valid');
-    }else{
-        console.log('Credentials are invalid');
-        process.exit(1);
-    }
-    return
 }

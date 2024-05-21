@@ -1,122 +1,24 @@
-import path from 'path';
-import {authenticate} from '@google-cloud/local-auth';
-import {Auth, google} from 'googleapis';
+import sgMail from '@sendgrid/mail'
+import _ from "lodash";
+sgMail.setApiKey(process.env.SENDGRID_API_KEY ?? '')
 
-const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
-import _ from 'lodash';
-
-/**
- * Reads previously authorized credentials from the save file.
- *
- * @return {Promise<Auth.OAuth2Client|null>}
- */
-async function loadSavedCredentialsIfExist() {
-    try {
-        const credentials = await Bun.file(TOKEN_PATH).json();
-        const { client_id, client_secret } = credentials;
-        const { refresh_token, access_token, expiry_date } = credentials.credentials;
-
-        const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
-        oAuth2Client.setCredentials({ refresh_token, access_token, expiry_date });
-
-        // Check if the access token is expired
-        const now = Date.now();
-        if (expiry_date && expiry_date <= now) {
-            console.log('Access token expired, refreshing...');
-            const { credentials: refreshedTokens } = await oAuth2Client.refreshAccessToken();
-            oAuth2Client.setCredentials(refreshedTokens);
-            await saveCredentials(oAuth2Client);
-        }else{
-            console.log('Access token is still valid');
-        }
-
-        return oAuth2Client;
-    } catch (err) {
-        console.error('Failed to load saved credentials:', err);
-        return null;
+export async function sendMessage(responseBody:any) {
+    const msg = {
+        to: process.env.MY_EMAIL, // Change to your recipient
+        from: 'tracker@andrew.ac', // Change to your verified sender
+        subject: 'Citizenship Tracker Updated',
+        html: emailContent(responseBody),
     }
+    sgMail
+        .send(msg)
+        .then(() => {
+            console.log('Email sent')
+        })
+        .catch((error) => {
+            console.error(error)
+        })
 }
 
-/**
- * Serializes credentials to a file.
- *
- * @param {Auth.OAuth2Client} client
- * @return {Promise<void>}
- */
-async function saveCredentials(client: Auth.OAuth2Client): Promise<void> {
-    if (!client.credentials.refresh_token) {
-        console.error('No refresh token found, credentials not saved');
-        return;
-    }
-    try {
-        const payload = JSON.stringify({
-            type: 'authorized_user',
-            client_id: client._clientId,
-            client_secret: client._clientSecret,
-            credentials:{
-                ...client.credentials
-            }
-        }, null, 2);
-        await Bun.write(TOKEN_PATH, payload);
-        console.log('Credentials saved successfully.');
-    } catch (err) {
-        console.error('Failed to save credentials:', err);
-    }
-}
-
-/**
- * Load or request authorization to call APIs.
- *
- * @return {Promise<Auth.OAuth2Client|null>}
- */
-export async function authorize(): Promise<Auth.OAuth2Client | null> {
-    let client = await loadSavedCredentialsIfExist();
-    if (client) {
-        console.log('Using saved credentials');
-        return client;
-    }
-    try {
-        client = await authenticate({
-            scopes: SCOPES,
-            keyfilePath: CREDENTIALS_PATH,
-        });
-        await saveCredentials(client);
-    } catch (err) {
-        console.error('Authorization failed:', err);
-        return null;
-    }
-    return client;
-}
-
-/**
- * Send an email message.
- *
- * @param {Auth.OAuth2Client} auth
- * @param responseBody
- */
-export async function sendMessage(auth: Auth.OAuth2Client, responseBody:any) {
-    try {
-        const gmail = google.gmail({version: 'v1', auth});
-        const rawMessage = `From: "${process.env.MY_NAME}" <${process.env.MY_EMAIL}>\r\n` +
-            `To: ${process.env.DEVEMAIL || process.env.MY_EMAIL}\r\n` +
-            `Subject: Citizenship Tracker Updated\r\n` +
-            `Content-Type: text/html; charset="UTF-8"\r\n\r\n` +
-            emailContent(responseBody);
-
-        const encodedMessage = Buffer.from(rawMessage).toString('base64url');
-        await gmail.users.messages.send({
-            userId: 'me',
-            requestBody: {
-                raw: encodedMessage,
-            },
-        });
-        console.log('Message sent!');
-    } catch (err) {
-        console.error('Failed to send message:', err);
-    }
-}
 
 function emailContent(data: any){
     return `<!DOCTYPE html>

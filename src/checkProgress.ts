@@ -1,5 +1,5 @@
 import {Browser, BrowserContext, chromium, Page} from 'playwright';
-import {authorize, sendMessage} from "./sendEmail";
+import {sendMessage} from "./sendEmail";
 
 interface StoredData {
     dateText: string;
@@ -37,17 +37,11 @@ async function checkProgress(): Promise<void> {
                     if (hasChange) {
                         await Bun.write('data.json', JSON.stringify({dateText:lastUpdatedTime, statusText:status}));
                         console.log('Data has changed');
-                        let auth = await authorize();
-                        if (auth) {
-                            await sendMessage(auth,responseBody);
-                        }
+                        await sendMessage(responseBody);
                     } else {
                         console.log('No change in data');
                         if(process.env.DEV ?? false){
-                            let auth = await authorize();
-                            if (auth) {
-                                await sendMessage(auth,responseBody);
-                            }
+                            await sendMessage(responseBody);
                         }
                     }
                     console.log({
