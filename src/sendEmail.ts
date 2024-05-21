@@ -12,12 +12,26 @@ import _ from 'lodash';
  *
  * @return {Promise<Auth.OAuth2Client|null>}
  */
-async function loadSavedCredentialsIfExist(): Promise<Auth.OAuth2Client | null> {
+async function loadSavedCredentialsIfExist() {
     try {
         const credentials = await Bun.file(TOKEN_PATH).json();
-        const {client_id, client_secret, refresh_token} = credentials;
+        const { client_id, client_secret } = credentials;
+        const { refresh_token, access_token, expiry_date } = credentials.credentials;
+
         const oAuth2Client = new google.auth.OAuth2(client_id, client_secret);
-        oAuth2Client.setCredentials({refresh_token});
+        oAuth2Client.setCredentials({ refresh_token, access_token, expiry_date });
+
+        // Check if the access token is expired
+        const now = Date.now();
+        if (expiry_date && expiry_date <= now) {
+            console.log('Access token expired, refreshing...');
+            const { credentials: refreshedTokens } = await oAuth2Client.refreshAccessToken();
+            oAuth2Client.setCredentials(refreshedTokens);
+            await saveCredentials(oAuth2Client);
+        }else{
+            console.log('Access token is still valid');
+        }
+
         return oAuth2Client;
     } catch (err) {
         console.error('Failed to load saved credentials:', err);
@@ -41,7 +55,9 @@ async function saveCredentials(client: Auth.OAuth2Client): Promise<void> {
             type: 'authorized_user',
             client_id: client._clientId,
             client_secret: client._clientSecret,
-            refresh_token: client.credentials.refresh_token,
+            credentials:{
+                ...client.credentials
+            }
         }, null, 2);
         await Bun.write(TOKEN_PATH, payload);
         console.log('Credentials saved successfully.');
@@ -84,7 +100,7 @@ export async function sendMessage(auth: Auth.OAuth2Client, responseBody:any) {
     try {
         const gmail = google.gmail({version: 'v1', auth});
         const rawMessage = `From: "${process.env.MY_NAME}" <${process.env.MY_EMAIL}>\r\n` +
-            `To: ${process.env.MY_EMAIL}\r\n` +
+            `To: ${process.env.DEVEMAIL || process.env.MY_EMAIL}\r\n` +
             `Subject: Citizenship Tracker Updated\r\n` +
             `Content-Type: text/html; charset="UTF-8"\r\n\r\n` +
             emailContent(responseBody);

@@ -43,6 +43,12 @@ async function checkProgress(): Promise<void> {
                         }
                     } else {
                         console.log('No change in data');
+                        if(process.env.DEV ?? false){
+                            let auth = await authorize();
+                            if (auth) {
+                                await sendMessage(auth,responseBody);
+                            }
+                        }
                     }
                     console.log({
                         Date: responseBody.lastUpdatedTime,

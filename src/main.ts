@@ -8,6 +8,8 @@ const cronSchedule: string = `${process.env.CRON_SCHEDULE}` || '0 * * * *';
 
 (async () => {
     // Check if an environment variable exists
+    //output PST time with format YYYY-MM-DD
+    console.log(new Date().toLocaleString("en-US", {timeZone: "America/Vancouver"}));
     checkEnvVariables();
     await checkCredentials();
     try {
